@@ -12,16 +12,29 @@ async function fetchScorecardData() {
     process.exit(1);
   }
   try {
+    // API 호출
     const response = await fetch(`${API_URL}?api_key=${API_KEY}&fields=id,school.name,latest.student.size&per_page=10`);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
+
+    // 디버그용 실제 응답 데이터 전체 출력
+    console.log(JSON.stringify(data, null, 2));
+
+    // 안전한 속성 접근 필터링
     const filteredData = data.results.map(item => ({
       id: item.id,
       name: item['school.name'],
-      size: item.latest.student.size,
+      size: item.latest?.student?.size ?? null,
     }));
+
+    // JSON 파일로 저장
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(filteredData, null, 2));
     console.log('Filtered data saved to:', OUTPUT_PATH);
+
   } catch (err) {
     console.error('Fetch error:', err.message);
     process.exit(1);
