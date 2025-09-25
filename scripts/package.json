@@ -1,0 +1,12 @@
+{
+  "name": "fetch-api",
+  "version": "1.0.0",
+  "description": "Fetch data from College Scorecard API",
+  "main": "fetch-api.js",
+  "scripts": {
+    "start": "node fetch-api.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  }
+}
