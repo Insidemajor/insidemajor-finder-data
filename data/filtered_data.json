@@ -1,1 +1,52 @@
-
+[
+  {
+    "id": 100654,
+    "name": "Alabama A & M University",
+    "size": null
+  },
+  {
+    "id": 100663,
+    "name": "University of Alabama at Birmingham",
+    "size": null
+  },
+  {
+    "id": 100690,
+    "name": "Amridge University",
+    "size": null
+  },
+  {
+    "id": 100706,
+    "name": "University of Alabama in Huntsville",
+    "size": null
+  },
+  {
+    "id": 100724,
+    "name": "Alabama State University",
+    "size": null
+  },
+  {
+    "id": 100751,
+    "name": "The University of Alabama",
+    "size": null
+  },
+  {
+    "id": 100760,
+    "name": "Central Alabama Community College",
+    "size": null
+  },
+  {
+    "id": 100812,
+    "name": "Athens State University",
+    "size": null
+  },
+  {
+    "id": 100830,
+    "name": "Auburn University at Montgomery",
+    "size": null
+  },
+  {
+    "id": 100858,
+    "name": "Auburn University",
+    "size": null
+  }
+]
