@@ -1,39 +1,31 @@
-name: Fetch Scorecard Data
+const fetch = require('node-fetch');
+const fs = require('fs');
+const path = require('path');
 
-on:
-  schedule:
-    - cron: '0 3 * * 0'  # 매주 일요일 03:00 UTC (서울 12:00)
-  workflow_dispatch:
+const API_KEY = process.env.COLLEGE_SCORECARD_API_KEY;
+const API_URL = 'https://api.data.gov/ed/collegescorecard/v1/schools';
+const OUTPUT_PATH = path.resolve(__dirname, '../data/filtered_data.json');
 
-jobs:
-  fetch-data:
-    runs-on: ubuntu-latest
+async function fetchScorecardData() {
+  if (!API_KEY) {
+    console.error('Error: COLLEGE_SCORECARD_API_KEY is not set.');
+    process.exit(1);
+  }
+  try {
+    const response = await fetch(`${API_URL}?api_key=${API_KEY}&fields=id,school.name,latest.student.size&per_page=10`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    const filteredData = data.results.map(item => ({
+      id: item.id,
+      name: item['school.name'],
+      size: item.latest.student.size,
+    }));
+    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(filteredData, null, 2));
+    console.log('Filtered data saved to:', OUTPUT_PATH);
+  } catch (err) {
+    console.error('Fetch error:', err.message);
+    process.exit(1);
+  }
+}
 
-    steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-
-    - name: Install dependencies
-      run: npm install
-      working-directory: ./scripts
-
-    - name: Run fetch-api script
-      env:
-        COLLEGE_SCORECARD_API_KEY: ${{ secrets.COLLEGE_SCORECARD_API_KEY }}
-      run: node fetch-api.js
-      working-directory: ./scripts
-
-    - name: Commit and push updated data
-      run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "actions@github.com"
-        git add ../data/filtered_data.json
-        git commit -m "Update filtered data"
-        git push
-      working-directory: ./scripts
-      continue-on-error: true
+fetchScorecardData();
