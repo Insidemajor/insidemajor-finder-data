@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'    # 변경 필요 없지만 Node 버전 조정 시 수정 가능
+          node-version: '18'
 
       - name: Install dependencies
         run: npm install
@@ -24,16 +24,18 @@ jobs:
 
       - name: Run fetch-api script
         env:
-          COLLEGE_SCORECARD_API_KEY: ${{ secrets.COLLEGE_SCORECARD_API_KEY }}   # 시크릿 이름 정확히 일치시키기
-        run: node fetch-api.js
+          COLLEGE_SCORECARD_API_KEY: ${{ secrets.COLLEGE_SCORECARD_API_KEY }}
+        run: |
+          echo "API Key length: ${#COLLEGE_SCORECARD_API_KEY}"  # 키 세팅 확인용
+          node fetch-api.js
         working-directory: ./scripts
 
       - name: Commit and push updated data
+        if: success() && steps['Run fetch-api script'].conclusion == 'success'
         run: |
-          git config --global user.name 'github-actions'  # 보통 수정 불필요
-          git config --global user.email 'actions@github.com'  # 보통 수정 불필요
+          git config --global user.name 'github-actions'
+          git config --global user.email 'actions@github.com'
           git add ../data/filtered_data.json
-          git commit -m 'Update filtered data'  # 원하는 커밋 메시지로 변경 가능
+          git commit -m 'Update filtered data' || echo "No changes to commit"
           git push
         working-directory: ./scripts
-        continue-on-error: true
