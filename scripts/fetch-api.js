@@ -12,33 +12,78 @@ async function fetchScorecardData() {
     process.exit(1);
   }
   try {
-    // API 호출
-    const response = await fetch(`${API_URL}?api_key=${API_KEY}&fields=id,school.name,latest.student.size&per_page=10`);
+    // API 호출, 페이징으로 1회당 100개 호출
+const perPage = 100;
+let page = 1;
+let allResults = [];
+let hasMore = true;
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+while (hasMore) {
+  const fields = [
+  'id',
+  'school.name',
+  'school.city',
+  'school.state',
+  'school.school_url',
+  'school.carnegie_basic',
+  'school.locale',
+  'latest.academics.programs.title',
+  'latest.academics.program_percentage',
+  'latest.academics.programs.degree_level',
+  'latest.student.size',
+  'latest.completion.rate',
+  'latest.cost.tuition.in_state',
+  'latest.cost.tuition.out_of_state',
+  'latest.cost.attendance.academic_year',
+  'latest.aid.median_debt.completers',
+].join(',');
+  const response = await fetch(`${API_URL}?api_key=${API_KEY}&fields=${fields}&per_page=${perPage}&page=${page}`);
 
-    const data = await response.json();
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
-    // 디버그용 실제 응답 데이터 전체 출력
-    console.log(JSON.stringify(data, null, 2));
+  const data = await response.json();
 
-    // 안전한 속성 접근 필터링
-    const filteredData = data.results.map(item => ({
-      id: item.id,
-      name: item['school.name'],
-      size: item.latest?.student?.size ?? null,
-    }));
+  if (data.results.length === 0) {
+    hasMore = false;
+    break;
+  }
 
-    // JSON 파일로 저장
-    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(filteredData, null, 2));
-    console.log('Filtered data saved to:', OUTPUT_PATH);
+  allResults = allResults.concat(data.results.map((item, index) => ({
+  number: allResults.length + index + 1,
+  id: item.id,
+  name: item['school.name'] ?? null,
+  city: item['school.city'] ?? null,
+  state: item['school.state'] ?? null,
+  school_url: item['school.school_url'] ?? null,
+  carnegie_basic: item['school.carnegie_basic'] ?? null,
+  locale: item['school.locale'] ?? null,
+  program_title: item['latest.academics.programs.title'] ?? null,
+  program_percentage: item['latest.academics.program_percentage'] ?? null,
+  degree_level: item['latest.academics.programs.degree_level'] ?? null,
+  size: item.latest?.student?.size ?? null,
+  completion_rate: item.latest?.completion?.rate ?? null,
+  tuition_in_state: item.latest?.cost?.tuition?.in_state ?? null,
+  tuition_out_of_state: item.latest?.cost?.tuition?.out_of_state ?? null,
+  attendance_academic_year: item.latest?.cost?.attendance?.academic_year ?? null,
+  median_debt_completers: item.latest?.aid?.median_debt?.completers ?? null,
+    
+  })));
 
-  } catch (err) {
-    console.error('Fetch error:', err.message);
-    process.exit(1);
+  page++;
+
+  if (data.metadata && data.metadata.total < perPage * (page + 1)) {
+    hasMore = false;
   }
 }
 
+fs.writeFileSync(OUTPUT_PATH, JSON.stringify(allResults, null, 2));
+console.log('Filtered data saved to:', OUTPUT_PATH);
+
+} catch (err) {
+  console.error('Fetch error:', err.message);
+  process.exit(1);
+  }
+}
 fetchScorecardData();
