@@ -11,9 +11,6 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * 중복 제거 함수
- */
 function uniqueArray(arr) {
   if (!Array.isArray(arr)) return null;
   return [...new Set(arr)].filter(Boolean);
@@ -80,7 +77,6 @@ async function fetchScorecardData(programTitle = '') {
 
     const filterParams = [];
     if (programTitle.trim()) {
-      // 간소화된 필터링 구문, API 테스트 후 필요시 조정하세요
       filterParams.push(`latest.academics.programs.title ilike '%${programTitle}%'`);
     }
     const filterQuery = filterParams.length > 0 ? `&${filterParams.join(' AND ')}` : '';
@@ -143,7 +139,6 @@ async function fetchScorecardData(programTitle = '') {
       })
     );
 
-    // 중간 저장 및 기존 데이터 병합, 삭제 처리
     if (page % SAVE_INTERVAL === 0 || page * perPage >= data.metadata.total) {
       const existingMap = new Map(existingData.map(item => [item.id, item]));
       const newMap = new Map(newData.map(item => [item.id, item]));
@@ -159,7 +154,6 @@ async function fetchScorecardData(programTitle = '') {
       fs.writeFileSync(OUTPUT_PATH, JSON.stringify(updatedData, null, 2));
       console.log(`Intermediate save at page ${page}, total records saved: ${updatedData.length}`);
 
-      // 메모리 절약 및 설계 편의상 초기화
       existingData = updatedData;
       newData = [];
 
@@ -174,7 +168,6 @@ async function fetchScorecardData(programTitle = '') {
     }
   }
 
-  // 최종 병합 및 저장
   const existingMap = new Map(existingData.map(item => [item.id, item]));
   const newMap = new Map(newData.map(item => [item.id, item]));
 
@@ -202,7 +195,6 @@ async function fetchScorecardData(programTitle = '') {
   console.log(`Delta update complete. Data saved. Total changes: ${changesCount}`);
 }
 
-// 사용 예시: 필터 전공명을 전달
 fetchScorecardData('Computer Science').catch(err => {
   console.error('Fetch error:', err.message);
   process.exit(1);
