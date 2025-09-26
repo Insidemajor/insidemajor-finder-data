@@ -27,7 +27,7 @@ async function fetchScorecardData(programTitle = '') {
     try {
       existingData = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf-8'));
     } catch (e) {
-      console.warn('Failed to parse existing data file, starting fresh.');
+      console.warn('Failed to parse existing data, starting fresh.');
       existingData = [];
     }
   }
@@ -38,8 +38,8 @@ async function fetchScorecardData(programTitle = '') {
       const state = JSON.parse(fs.readFileSync(STATE_PATH, 'utf-8'));
       lastPage = state.lastPage || 0;
       console.log(`Resuming from page ${lastPage + 1}`);
-    } catch {
-      console.warn('Failed to load fetch state. Starting from page 1.');
+    } catch (e) {
+      console.warn('Failed to load fetch state: ', e);
     }
   }
 
@@ -75,11 +75,10 @@ async function fetchScorecardData(programTitle = '') {
     let retries = maxRetries;
     let data;
 
-    const filterParams = [];
-    if (programTitle.trim()) {
-      filterParams.push(`latest.academics.programs.title ilike '%${programTitle}%'`);
-    }
-    const filterQuery = filterParams.length > 0 ? `&${filterParams.join(' AND ')}` : '';
+    // 필터 구문 단순화: 일부 API는 ilike 등 복잡 필터 미지원
+    const filterQuery = programTitle.trim()
+      ? `&latest.academics.programs.title=${encodeURIComponent(programTitle)}`
+      : '';
 
     while (true) {
       try {
@@ -115,26 +114,26 @@ async function fetchScorecardData(programTitle = '') {
         return {
           number: newData.length + index + 1,
           id: item.id,
-          name: item['school.name'] ?? null,
-          city: item['school.city'] ?? null,
-          state: item['school.state'] ?? null,
-          ownership: item['school.ownership'] ?? null,
-          school_url: item['school.school_url'] ?? null,
-          carnegie_basic: item['school.carnegie_basic'] ?? null,
-          locale: item['school.locale'] ?? null,
+          name: item['school.name'] || null,
+          city: item['school.city'] || null,
+          state: item['school.state'] || null,
+          ownership: item['school.ownership'] || null,
+          school_url: item['school.school_url'] || null,
+          carnegie_basic: item['school.carnegie_basic'] || null,
+          locale: item['school.locale'] || null,
           program_titles: uniqueArray(programs.map(p => p.title)),
-          program_percentage: item['latest.academics.program_percentage'] ?? null,
+          program_percentage: item['latest.academics.program_percentage'] || null,
           degree_levels: uniqueArray(programs.map(p => p.degree_level)),
           cip_4_digits: uniqueArray(programs.map(p => p.cip_4_digit_code)),
           cip_6_digits: uniqueArray(programs.map(p => p.cip_6_digit_code)),
-          size: item.latest?.student?.size ?? null,
-          completion_rate: item.latest?.completion?.rate ?? null,
-          earnings_10yr_median: item.latest?.earnings?.['10_yrs_after_entry']?.median ?? null,
-          admission_rate: item.latest?.admissions?.admission_rate?.overall ?? null,
-          tuition_in_state: item.latest?.cost?.tuition?.in_state ?? null,
-          tuition_out_of_state: item.latest?.cost?.tuition?.out_of_state ?? null,
-          attendance_academic_year: item.latest?.cost?.attendance?.academic_year ?? null,
-          median_debt_completers: item.latest?.aid?.median_debt?.completers ?? null,
+          size: item.latest?.student?.size || null,
+          completion_rate: item.latest?.completion?.rate || null,
+          earnings_10yr_median: item.latest?.earnings?.['10_yrs_after_entry']?.median || null,
+          admission_rate: item.latest?.admissions?.admission_rate?.overall || null,
+          tuition_in_state: item.latest?.cost?.tuition?.in_state || null,
+          tuition_out_of_state: item.latest?.cost?.tuition?.out_of_state || null,
+          attendance_academic_year: item.latest?.cost?.attendance?.academic_year || null,
+          median_debt_completers: item.latest?.aid?.median_debt?.completers || null,
         };
       })
     );
