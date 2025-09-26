@@ -11,19 +11,30 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchScorecardData() {
+/**
+ * 중복 제거 함수
+ */
+function uniqueArray(arr) {
+  if (!Array.isArray(arr)) return null;
+  return [...new Set(arr)].filter(Boolean);
+}
+
+async function fetchScorecardData(programTitle = '') {
   if (!API_KEY) {
     console.error('Error: COLLEGE_SCORECARD_API_KEY is not set.');
     process.exit(1);
   }
 
-  // 1. 기존 JSON 파일 불러오기
   let existingData = [];
   if (fs.existsSync(OUTPUT_PATH)) {
-    existingData = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf-8'));
+    try {
+      existingData = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf-8'));
+    } catch (e) {
+      console.warn('Failed to parse existing data file, starting fresh.');
+      existingData = [];
+    }
   }
 
-  // 1-1. 저장된 진행 상태 불러오기 (재시작용)
   let lastPage = 0;
   if (fs.existsSync(STATE_PATH)) {
     try {
@@ -35,9 +46,8 @@ async function fetchScorecardData() {
     }
   }
 
-  // 2. API 호출 및 데이터 수집 (페이징 반복)
   const perPage = 100;
-  let page = lastPage + 1; // 재시작 시 마지막 페이지 이후부터 시작
+  let page = lastPage + 1;
   let hasMore = true;
   let newData = [];
   const maxRetries = 3;
@@ -48,6 +58,7 @@ async function fetchScorecardData() {
     'school.name',
     'school.city',
     'school.state',
+    'school.ownership',
     'school.school_url',
     'school.carnegie_basic',
     'school.locale',
@@ -55,6 +66,8 @@ async function fetchScorecardData() {
     'latest.academics.program_percentage',
     'latest.student.size',
     'latest.completion.rate',
+    'latest.earnings.10_yrs_after_entry.median',
+    'latest.admissions.admission_rate.overall',
     'latest.cost.tuition.in_state',
     'latest.cost.tuition.out_of_state',
     'latest.cost.attendance.academic_year',
@@ -65,58 +78,77 @@ async function fetchScorecardData() {
     let retries = maxRetries;
     let data;
 
-    while (true) {
-      const response = await fetch(`${API_URL}?api_key=${API_KEY}&fields=${fields}&per_page=${perPage}&page=${page}`);
+    const filterParams = [];
+    if (programTitle.trim()) {
+      // 간소화된 필터링 구문, API 테스트 후 필요시 조정하세요
+      filterParams.push(`latest.academics.programs.title ilike '%${programTitle}%'`);
+    }
+    const filterQuery = filterParams.length > 0 ? `&${filterParams.join(' AND ')}` : '';
 
-      if (response.ok) {
+    while (true) {
+      try {
+        const url = `${API_URL}?api_key=${API_KEY}&fields=${fields}&per_page=${perPage}&page=${page}${filterQuery}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          retries--;
+          if (retries <= 0) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          console.warn(`Failed to fetch page ${page}, retrying... (${maxRetries - retries}/${maxRetries})`);
+          await delay(500);
+          continue;
+        }
+
         data = await response.json();
         break;
-      } else {
-        retries--;
-        if (retries <= 0) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        console.warn(`Failed to fetch page ${page}, retrying... (${maxRetries - retries}/${maxRetries})`);
-        await delay(500);
+      } catch (err) {
+        console.error('Fetch error:', err.message);
+        process.exit(1);
       }
     }
 
-    if (data.results.length === 0) {
+    if (!data.results || data.results.length === 0) {
       hasMore = false;
       break;
     }
 
     newData = newData.concat(
-      data.results.map((item, index) => ({
-        number: newData.length + index + 1,
-        id: item.id,
-        name: item['school.name'] ?? null,
-        city: item['school.city'] ?? null,
-        state: item['school.state'] ?? null,
-        school_url: item['school.school_url'] ?? null,
-        carnegie_basic: item['school.carnegie_basic'] ?? null,
-        locale: item['school.locale'] ?? null,
-        program_title: item.latest?.academics?.programs?.[0]?.title ?? null,
-        program_percentage: item['latest.academics.program_percentage'] ?? null,
-        degree_level: item.latest?.academics?.programs?.[0]?.degree_level ?? null,
-        size: item.latest?.student?.size ?? null,
-        completion_rate: item.latest?.completion?.rate ?? null,
-        tuition_in_state: item.latest?.cost?.tuition?.in_state ?? null,
-        tuition_out_of_state: item.latest?.cost?.tuition?.out_of_state ?? null,
-        attendance_academic_year: item.latest?.cost?.attendance?.academic_year ?? null,
-        median_debt_completers: item.latest?.aid?.median_debt?.completers ?? null,
-      }))
+      data.results.map((item, index) => {
+        const programs = item.latest?.academics?.programs || [];
+        return {
+          number: newData.length + index + 1,
+          id: item.id,
+          name: item['school.name'] ?? null,
+          city: item['school.city'] ?? null,
+          state: item['school.state'] ?? null,
+          ownership: item['school.ownership'] ?? null,
+          school_url: item['school.school_url'] ?? null,
+          carnegie_basic: item['school.carnegie_basic'] ?? null,
+          locale: item['school.locale'] ?? null,
+          program_titles: uniqueArray(programs.map(p => p.title)),
+          program_percentage: item['latest.academics.program_percentage'] ?? null,
+          degree_levels: uniqueArray(programs.map(p => p.degree_level)),
+          cip_4_digits: uniqueArray(programs.map(p => p.cip_4_digit_code)),
+          cip_6_digits: uniqueArray(programs.map(p => p.cip_6_digit_code)),
+          size: item.latest?.student?.size ?? null,
+          completion_rate: item.latest?.completion?.rate ?? null,
+          earnings_10yr_median: item.latest?.earnings?.['10_yrs_after_entry']?.median ?? null,
+          admission_rate: item.latest?.admissions?.admission_rate?.overall ?? null,
+          tuition_in_state: item.latest?.cost?.tuition?.in_state ?? null,
+          tuition_out_of_state: item.latest?.cost?.tuition?.out_of_state ?? null,
+          attendance_academic_year: item.latest?.cost?.attendance?.academic_year ?? null,
+          median_debt_completers: item.latest?.aid?.median_debt?.completers ?? null,
+        };
+      })
     );
 
+    // 중간 저장 및 기존 데이터 병합, 삭제 처리
     if (page % SAVE_INTERVAL === 0 || page * perPage >= data.metadata.total) {
-      // 중간 델타 병합 및 저장 (신규, 수정, 삭제 반영)
       const existingMap = new Map(existingData.map(item => [item.id, item]));
       const newMap = new Map(newData.map(item => [item.id, item]));
 
-      // 신규, 수정, 삭제 모두 처리
-      newMap.forEach((newItem, id) => {
-        existingMap.set(id, newItem);
-      });
+      newMap.forEach((newItem, id) => existingMap.set(id, newItem));
       for (const id of existingMap.keys()) {
         if (!newMap.has(id)) {
           existingMap.delete(id);
@@ -127,10 +159,10 @@ async function fetchScorecardData() {
       fs.writeFileSync(OUTPUT_PATH, JSON.stringify(updatedData, null, 2));
       console.log(`Intermediate save at page ${page}, total records saved: ${updatedData.length}`);
 
+      // 메모리 절약 및 설계 편의상 초기화
       existingData = updatedData;
-      newData = [];  // 메모리 절약을 위해 중간 누적 초기화
+      newData = [];
 
-      // 진행 상태 저장 (재시작용)
       fs.writeFileSync(STATE_PATH, JSON.stringify({ lastPage: page }, null, 2));
     }
 
@@ -142,7 +174,7 @@ async function fetchScorecardData() {
     }
   }
 
-  // 최종 델타 업데이트 병합 및 저장
+  // 최종 병합 및 저장
   const existingMap = new Map(existingData.map(item => [item.id, item]));
   const newMap = new Map(newData.map(item => [item.id, item]));
 
@@ -164,14 +196,14 @@ async function fetchScorecardData() {
 
   const updatedData = Array.from(existingMap.values());
   fs.writeFileSync(OUTPUT_PATH, JSON.stringify(updatedData, null, 2));
-  // 마지막으로 진행 상태 파일 삭제해 완료 표시
   if (fs.existsSync(STATE_PATH)) {
     fs.unlinkSync(STATE_PATH);
   }
   console.log(`Delta update complete. Data saved. Total changes: ${changesCount}`);
 }
 
-fetchScorecardData().catch(err => {
+// 사용 예시: 필터 전공명을 전달
+fetchScorecardData('Computer Science').catch(err => {
   console.error('Fetch error:', err.message);
   process.exit(1);
 });
