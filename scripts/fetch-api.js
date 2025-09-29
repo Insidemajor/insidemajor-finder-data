@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const https = require('https');
 
 // 환경변수에서 API 키 읽기
