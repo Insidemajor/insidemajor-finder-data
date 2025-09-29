@@ -1,15 +1,15 @@
+---
 name: Fetch Scorecard Data
 
 on:
   schedule:
     - cron: '0 3 * * 0'  # Weekly on Sunday at 3 AM UTC
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
   fetch-data:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4  # Updated from v3
@@ -43,11 +43,13 @@ jobs:
       - name: Commit and push updated data
         run: |
           git config --global user.name 'github-actions[bot]'
-          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          
+          git config --global user.email \
+            '41898282+github-actions[bot]@users.noreply.github.com'
+
           if [ -n "$(git status --porcelain)" ]; then
             git add data/filtered_data.json
-            git commit -m "Update filtered data - $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            git commit -m \
+              "Update filtered data - $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
             git push
             echo "Data updated and pushed successfully"
           else
