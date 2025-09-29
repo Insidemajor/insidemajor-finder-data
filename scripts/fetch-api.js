@@ -1,9 +1,16 @@
 const https = require('https');
 
-const API_KEY = 'm5uUlj6ZUFHcEmQrHLIWWo8HwUOAOm5Ad3UcdFb2';  // 직접 키 할당
+// 환경변수에서 API 키 읽기
+const API_KEY = process.env.COLLEGE_SCORECARD_API_KEY || 'your_default_api_key_here';
 const PER_PAGE = 100;
+const MAX_PAGES = 50; // 최대 페이지 수 제한
 
 function fetchData(page = 0) {
+  if (page >= MAX_PAGES) {
+    console.log('최대 페이지 수 도달. 종료합니다.');
+    return;
+  }
+
   const API_URL = `https://api.data.gov/ed/collegescorecard/v1/schools?api_key=${API_KEY}` +
                   `&fields=number,id,school.name,school.city,school.state,school.school_url` +
                   `&page=${page}&per_page=${PER_PAGE}`;
@@ -11,7 +18,7 @@ function fetchData(page = 0) {
   https.get(API_URL, (res) => {
     let data = '';
 
-    res.setEncoding('utf8'); // 응답 인코딩 설정
+    res.setEncoding('utf8');
     res.on('data', chunk => data += chunk);
     res.on('end', () => {
       try {
@@ -23,11 +30,10 @@ function fetchData(page = 0) {
 
         console.log(`페이지: ${page + 1} (데이터 ${json.results.length}개)`);
 
-        for (const school of json.results) {
-          console.log(`Number: ${school.number}, ID: ${school.id}, Name: ${school['school.name']}, City: ${school['school.city']}, State: ${school['school.state']}, URL: ${school['school.school_url']}`);
-        }
+        json.results.forEach(school => {
+          console.log(`Number: ${school.number}, ID: ${school.id}, Name: ${school.school.name}, City: ${school.school.city}, State: ${school.school.state}, URL: ${school.school.school_url}`);
+        });
 
-        // 재귀 호출로 다음 페이지 처리
         fetchData(page + 1);
 
       } catch (error) {
@@ -39,5 +45,4 @@ function fetchData(page = 0) {
   });
 }
 
-// 스크립트 시작
 fetchData();
