@@ -2,43 +2,42 @@ name: Fetch Scorecard Data
 
 on:
   schedule:
-    - cron: '0 3 * * 0'  # Weekly on Sunday at 3 AM UTC
-  workflow_dispatch:
+    - cron: '0 3 * * 0'  # 매주 일요일 오전 3시 UTC에 실행
+  workflow_dispatch:     # 수동 실행 가능
 
 jobs:
   fetch-data:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 30  # 최대 30분 동안 실행 제한
     
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4  # Updated from v3
+        uses: actions/checkout@v4  # 저장소 체크아웃 (v3에서 v4로 업데이트)
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+          fetch-depth: 0            # 전체 커밋 기록 받아오기
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4  # Updated from v3
+        uses: actions/setup-node@v4  # Node.js 설정 (v3에서 v4로 업데이트)
         with:
-          node-version: '18'
-          # FIXED: Correct cache configuration for scripts directory
-          cache: 'npm'
-          cache-dependency-path: 'scripts/package-lock.json'
+          node-version: '18'          # Node.js 18 버전 사용
+          cache: 'npm'                # npm 캐시 활성화로 설치 속도 개선
+          cache-dependency-path: 'scripts/package-lock.json'  # 캐시 키로 사용할 락파일 경로 설정
 
       - name: Install dependencies
-        run: npm ci  # More reliable than npm install
+        run: npm ci                  # 의존성 설치 (npm install보다 안정적)
         working-directory: ./scripts
 
       - name: Create data directory
-        run: mkdir -p ../data
+        run: mkdir -p ../data        # data 폴더가 없으면 생성
         working-directory: ./scripts
 
       - name: Run fetch-api script
         env:
-          COLLEGE_SCORECARD_API_KEY: ${{ secrets.COLLEGE_SCORECARD_API_KEY }}
+          COLLEGE_SCORECARD_API_KEY: ${{ secrets.COLLEGE_SCORECARD_API_KEY }}  # API 키 환경변수 설정
         run: |
           echo "Starting data fetch..."
-          node fetch-api.js
+          node fetch-api.js           # Node.js 스크립트 실행
         working-directory: ./scripts
 
       - name: Commit and push updated data
@@ -46,7 +45,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
           
-          # Check for changes and commit
+          # 변경사항이 있으면 git add, commit, push 수행
           if [ -n "$(git status --porcelain)" ]; then
             git add data/filtered_data.json
             git commit -m "Update filtered data - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
