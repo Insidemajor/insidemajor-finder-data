@@ -21,8 +21,9 @@ jobs:
         uses: actions/setup-node@v4  # Updated from v3
         with:
           node-version: '18'
+          # FIXED: Correct cache configuration for scripts directory
           cache: 'npm'
-          cache-dependency-path: ./scripts/package-lock.json
+          cache-dependency-path: 'scripts/package-lock.json'
 
       - name: Install dependencies
         run: npm ci  # More reliable than npm install
@@ -45,11 +46,12 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
           
+          # Check for changes and commit
           if [ -n "$(git status --porcelain)" ]; then
             git add data/filtered_data.json
-            git commit -m "Update filtered data - $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            git commit -m "Update filtered data - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
             git push
-            echo "Data updated and pushed successfully"
+            echo "✅ Data updated and pushed successfully"
           else
-            echo "No changes detected, skipping commit"
+            echo "ℹ️  No changes detected, skipping commit"
           fi
