@@ -1,0 +1,22 @@
+{
+  "name": "insidemajor-finder-data",
+  "version": "1.0.0",
+  "description": "미국 정부/교육/대학 Scorecard API 데이터 주간 자동수집 저장소 for Inside Major",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Insidemajor/insidemajor-finder-data.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Insidemajor/insidemajor-finder-data/issues"
+  },
+  "homepage": "https://github.com/Insidemajor/insidemajor-finder-data#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
