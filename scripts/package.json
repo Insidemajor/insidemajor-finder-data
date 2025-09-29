@@ -1,7 +1,7 @@
 {
   "name": "college-scorecard-fetcher",
   "version": "2.0.0",
-  "description": "Fetches and processes college scorecard data",
+  "description": "Fetches and processes college scorecard data from US Department of Education",
   "main": "fetch-api.js",
   "scripts": {
     "start": "node fetch-api.js",
@@ -12,5 +12,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "keywords": ["college", "scorecard", "education", "api"],
+  "author": "Insidemajor",
+  "license": "MIT"
 }
