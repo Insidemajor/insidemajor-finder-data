@@ -1,12 +1,16 @@
 {
-  "name": "fetch-api",
-  "version": "1.0.0",
-  "description": "Fetch data from College Scorecard API",
+  "name": "college-scorecard-fetcher",
+  "version": "2.0.0",
+  "description": "Fetches and processes college scorecard data",
   "main": "fetch-api.js",
   "scripts": {
-    "start": "node fetch-api.js"
+    "start": "node fetch-api.js",
+    "test": "node --check fetch-api.js"
   },
   "dependencies": {
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
