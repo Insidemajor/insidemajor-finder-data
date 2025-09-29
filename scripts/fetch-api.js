@@ -1,6 +1,6 @@
 const https = require('https');
 
-const API_KEY = process.env.COLLEGE_SCORECARD_API_KEY;
+const API_KEY = 'm5uUlj6ZUFHcEmQrHLIWWo8HwUOAOm5Ad3UcdFb2';  // 직접 키 할당
 const PER_PAGE = 100;
 
 function fetchData(page = 0) {
@@ -40,9 +40,4 @@ function fetchData(page = 0) {
 }
 
 // 스크립트 시작
-if (!API_KEY) {
-  console.error('COLLEGE_SCORECARD_API_KEY 환경변수를 설정해주세요.');
-  process.exit(1);
-}
-
 fetchData();
